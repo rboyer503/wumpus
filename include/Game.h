@@ -6,13 +6,24 @@
 #include <memory>
 
 
+namespace GameMessage
+{
+    enum
+    {
+        CLEAR,
+        START,
+        MAX
+    };
+}
+
+
 // Class managing the game play.
 class Game
 {
 public:
     enum class GameState
     {
-        init,
+        splash,
         game,
         gameover,
         MAX
@@ -24,14 +35,19 @@ public:
     void executiveLoop();
 
 private:
-    void processInit();
+    static const std::string myBanner;
+    static const std::string myMessages[GameMessage::MAX];
+
+    void updateState(const GameState gameState);
+    void processSplash();
     void processGame();
     void processGameOver();
 
     std::unique_ptr<ITerminal> myTerminal;
     World myActiveWorld;
     bool myExiting = false;
-    GameState myGameState = GameState::init;
+    GameState myGameState = GameState::splash;
+    bool myStateInit = true;
 };
 
 #endif // GAME_H

@@ -8,57 +8,76 @@
 class ITerminal;
 
 
-enum eRoomProp
+namespace RoomProp
 {
-    RP_VALID = 1 << 0,
-    RP_WUMPUS = 1 << 1,
-    RP_KEY = 1 << 2,
-    RP_LOCKED = 1 << 3,
-    RP_TREASURE = 1 << 4,
-    RP_DOOR = 1 << 5,
-    RP_MARK_WUMPUS = 1 << 6,
-    RP_MARK_UNKNOWN = 1 << 7
-};
+    enum
+    {
+        VALID = 1 << 0,
+        WUMPUS = 1 << 1,
+        KEY = 1 << 2,
+        LOCKED = 1 << 3,
+        TREASURE = 1 << 4,
+        DOOR = 1 << 5,
+        MARK_WUMPUS = 1 << 6,
+        MARK_UNKNOWN = 1 << 7
+    };
+}
 
-enum eRoomAdjacency
+namespace RoomAdjacency
 {
-    RA_TOPLEFT = 1 << 0,
-    RA_TOPRIGHT = 1 << 1,
-    RA_BOTTOMLEFT = 1 << 2,
-    RA_BOTTOMRIGHT = 1 << 3
-};
+    enum
+    {
+        TOPLEFT = 1 << 0,
+        TOPRIGHT = 1 << 1,
+        BOTTOMLEFT = 1 << 2,
+        BOTTOMRIGHT = 1 << 3
+    };
+}
 
-enum eLineStyle
+namespace LineStyle
 {
-    LS_HORIZONTAL,
-    LS_LEFT_VERT,
-    LS_RIGHT_VERT
-};
+    enum
+    {
+        HORIZONTAL,
+        LEFT_VERT,
+        RIGHT_VERT
+    };
+}
 
-enum eDrawStyle
+namespace DrawStyle
 {
-    DS_SINGLE,
-    DS_DOUBLE
-};
+    enum
+    {
+        SINGLE,
+        DOUBLE
+    };
+}
 
-enum eSpecialSymbol
+namespace SpecialSymbol
 {
-    SS_FACE,
-    SS_WUMPUS,
-    SS_KEY,
-    SS_LOCKED,
-    SS_UNKNOWN
-};
+    enum
+    {
+        FACE,
+        WUMPUS,
+        KEY,
+        LOCKED,
+        UNKNOWN
+    };
+}
 
-enum eUserMessage
+namespace WorldMessage
 {
-    UM_CLEAR,
-    UM_BADMOVE,
-    UM_NEARWUMPUS,
-    UM_LOSE,
-    UM_WIN,
-    UM_EXIT
-};
+    enum
+    {
+        CLEAR,
+        BADMOVE,
+        NEARWUMPUS,
+        LOSE,
+        WIN,
+        EXIT,
+        MAX
+    };
+}
 
 using room_data_t = uint16_t;
 
@@ -115,7 +134,7 @@ private:
     static const std::string myCornerStyles[][2];
     static const std::string myLineStyles[][2];
     static const std::string mySpecialSymbols[];
-    static const std::string myMessages[];
+    static const std::string myMessages[WorldMessage::MAX];
 
     ITerminal * myTerminal = nullptr;
     int myWidth = 0;

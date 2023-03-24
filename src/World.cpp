@@ -4,14 +4,16 @@
 #include <cmath>
 #include <iostream>
 
+using namespace RoomProp;
+
 
 const room_data_t World::myDefaultRoomData[] = {
-    0,          0,          RP_VALID,           RP_VALID|RP_TREASURE,   RP_VALID,   0,                  0,
-    0,          RP_VALID,   RP_VALID|RP_WUMPUS, RP_VALID,               RP_VALID,   RP_VALID,           0,
-    RP_VALID,   RP_VALID,   RP_VALID,           RP_VALID,               RP_VALID,   RP_VALID|RP_WUMPUS, RP_VALID,
-    RP_VALID,   RP_VALID,   RP_VALID,           RP_VALID,               RP_VALID,   RP_VALID,           RP_VALID,
-    0,          RP_VALID,   RP_VALID,           RP_VALID,               RP_VALID,   RP_VALID,           0,
-    0,          0,          RP_VALID,           RP_VALID,               RP_VALID,   0,                  0
+    0,      0,      VALID,          VALID|TREASURE, VALID,  0,              0,
+    0,      VALID,  VALID|WUMPUS,   VALID,          VALID,  VALID,          0,
+    VALID,  VALID,  VALID,          VALID,          VALID,  VALID|WUMPUS,   VALID,
+    VALID,  VALID,  VALID,          VALID,          VALID,  VALID,          VALID,
+    0,      VALID,  VALID,          VALID,          VALID,  VALID,          0,
+    0,      0,      VALID,          VALID,          VALID,  0,              0
 };
 
 const World::RawData World::myDefaultRawData = {
@@ -19,10 +21,10 @@ const World::RawData World::myDefaultRawData = {
 };
 
 // Indexed as bDCBA, where:
-//  A = RA_TOPLEFT
-//  B = RA_TOPRIGHT
-//  C = RA_BOTTOMLEFT
-//  D = RA_BOTTOMRIGHT
+//  A = RoomAdjacency::TOPLEFT
+//  B = RoomAdjacency::TOPRIGHT
+//  C = RoomAdjacency::BOTTOMLEFT
+//  D = RoomAdjacency::BOTTOMRIGHT
 const std::string World::myCornerStyles[][2] = {
     {" ", " "},
     {"┘", "╝"},
@@ -56,7 +58,7 @@ const std::string World::mySpecialSymbols[] = {
     "?" // "❓️"
 };
 
-const std::string World::myMessages[] = {
+const std::string World::myMessages[WorldMessage::MAX] = {
     "                                                                                ",
     "Sorry, you can only move 1 space at a time.                                     ",
     "You hear a wumpus lurking nearby...                                             ",
@@ -98,7 +100,7 @@ void World::render() const
     {
         for (int x = 0; x < myWidth; ++x)
         {
-            if (myRoomGrid[y][x] & RP_VALID)
+            if (myRoomGrid[y][x] & VALID)
             {
                 renderRoom(x, y);
             }
@@ -117,27 +119,27 @@ void World::renderRoom(int x, int y) const
 
     int xOffset = x * 4;
     int yOffset = y * 2;
-    int drawStyle = DS_SINGLE;
+    int drawStyle = DrawStyle::SINGLE;
 
     if ((x == mySelectX) && (y == mySelectY))
     {
-        drawStyle = DS_DOUBLE;
+        drawStyle = DrawStyle::DOUBLE;
     }
 
     std::ostringstream ossTop;
-    ossTop << getCornerStyle(0, 0, drawStyle) << myLineStyles[LS_HORIZONTAL][drawStyle] <<
+    ossTop << getCornerStyle(0, 0, drawStyle) << myLineStyles[LineStyle::HORIZONTAL][drawStyle] <<
         getCornerStyle(1, 0, drawStyle);
     myTerminal->setCursorPos(xOffset, yOffset);
     myTerminal->output(ossTop, false);
 
     std::ostringstream ossMiddle;
-    ossMiddle << myLineStyles[LS_LEFT_VERT][drawStyle] << getRoomContent(x, y) <<
-        myLineStyles[LS_RIGHT_VERT][drawStyle];
+    ossMiddle << myLineStyles[LineStyle::LEFT_VERT][drawStyle] << getRoomContent(x, y) <<
+        myLineStyles[LineStyle::RIGHT_VERT][drawStyle];
     myTerminal->setCursorPos(xOffset, yOffset + 1);
     myTerminal->output(ossMiddle, false);
 
     std::ostringstream ossBottom;
-    ossBottom << getCornerStyle(0, 1, drawStyle) << myLineStyles[LS_HORIZONTAL][drawStyle] <<
+    ossBottom << getCornerStyle(0, 1, drawStyle) << myLineStyles[LineStyle::HORIZONTAL][drawStyle] <<
         getCornerStyle(1, 1, drawStyle);
     myTerminal->setCursorPos(xOffset, yOffset + 2);
     myTerminal->output(ossBottom, false);
@@ -159,7 +161,7 @@ void World::moveSelection(MoveDirection direction)
     case MoveDirection::up:
         if (mySelectY > 0)
         {
-            if (myRoomGrid[mySelectY - 1][mySelectX] & RP_VALID)
+            if (myRoomGrid[mySelectY - 1][mySelectX] & VALID)
             {
                 --mySelectY;
                 dirty = true;
@@ -170,7 +172,7 @@ void World::moveSelection(MoveDirection direction)
     case MoveDirection::down:
         if (mySelectY < myHeight - 1)
         {
-            if (myRoomGrid[mySelectY + 1][mySelectX] & RP_VALID)
+            if (myRoomGrid[mySelectY + 1][mySelectX] & VALID)
             {
                 ++mySelectY;
                 dirty = true;
@@ -181,7 +183,7 @@ void World::moveSelection(MoveDirection direction)
     case MoveDirection::left:
         if (mySelectX > 0)
         {
-            if (myRoomGrid[mySelectY][mySelectX - 1] & RP_VALID)
+            if (myRoomGrid[mySelectY][mySelectX - 1] & VALID)
             {
                 --mySelectX;
                 dirty = true;
@@ -192,7 +194,7 @@ void World::moveSelection(MoveDirection direction)
     case MoveDirection::right:
         if (mySelectX < myWidth - 1)
         {
-            if (myRoomGrid[mySelectY][mySelectX + 1] & RP_VALID)
+            if (myRoomGrid[mySelectY][mySelectX + 1] & VALID)
             {
                 ++mySelectX;
                 dirty = true;
@@ -214,7 +216,7 @@ void World::move()
 
     if (distance != 1)
     {
-        displayMessage(myMessages[UM_BADMOVE], 0);
+        displayMessage(myMessages[WorldMessage::BADMOVE], 0);
         return;
     }
 
@@ -227,38 +229,38 @@ void World::move()
     renderRoom(oldX, oldY);
     renderRoom(myCurrX, myCurrY);
 
-    if (myRoomGrid[myCurrY][myCurrX] & RP_WUMPUS)
+    if (myRoomGrid[myCurrY][myCurrX] & WUMPUS)
     {
-        displayMessage(myMessages[UM_LOSE], 0);
-        displayMessage(myMessages[UM_EXIT], 1);
+        displayMessage(myMessages[WorldMessage::LOSE], 0);
+        displayMessage(myMessages[WorldMessage::EXIT], 1);
         myGameOver = true;
     }
-    else if (myRoomGrid[myCurrY][myCurrX] & RP_TREASURE)
+    else if (myRoomGrid[myCurrY][myCurrX] & TREASURE)
     {
-        displayMessage(myMessages[UM_WIN], 0);
-        displayMessage(myMessages[UM_EXIT], 1);
+        displayMessage(myMessages[WorldMessage::WIN], 0);
+        displayMessage(myMessages[WorldMessage::EXIT], 1);
         myGameOver = true;
     }
     else if (isNearWumpus())
     {
-        displayMessage(myMessages[UM_NEARWUMPUS], 0);
+        displayMessage(myMessages[WorldMessage::NEARWUMPUS], 0);
     }
     else
     {
-        displayMessage(myMessages[UM_CLEAR], 0);
+        displayMessage(myMessages[WorldMessage::CLEAR], 0);
     }
 }
 
 void World::toggleWumpus()
 {
-    if (myRoomGrid[mySelectY][mySelectX] & RP_MARK_WUMPUS)
+    if (myRoomGrid[mySelectY][mySelectX] & MARK_WUMPUS)
     {
-        myRoomGrid[mySelectY][mySelectX] &= ~RP_MARK_WUMPUS;
+        myRoomGrid[mySelectY][mySelectX] &= ~MARK_WUMPUS;
     }
     else
     {
-        myRoomGrid[mySelectY][mySelectX] &= ~RP_MARK_UNKNOWN;
-        myRoomGrid[mySelectY][mySelectX] |= RP_MARK_WUMPUS;
+        myRoomGrid[mySelectY][mySelectX] &= ~MARK_UNKNOWN;
+        myRoomGrid[mySelectY][mySelectX] |= MARK_WUMPUS;
     }
 
     renderSelectedRoom();
@@ -266,14 +268,14 @@ void World::toggleWumpus()
 
 void World::toggleUnknown()
 {
-    if (myRoomGrid[mySelectY][mySelectX] & RP_MARK_UNKNOWN)
+    if (myRoomGrid[mySelectY][mySelectX] & MARK_UNKNOWN)
     {
-        myRoomGrid[mySelectY][mySelectX] &= ~RP_MARK_UNKNOWN;
+        myRoomGrid[mySelectY][mySelectX] &= ~MARK_UNKNOWN;
     }
     else
     {
-        myRoomGrid[mySelectY][mySelectX] &= ~RP_MARK_WUMPUS;
-        myRoomGrid[mySelectY][mySelectX] |= RP_MARK_UNKNOWN;
+        myRoomGrid[mySelectY][mySelectX] &= ~MARK_WUMPUS;
+        myRoomGrid[mySelectY][mySelectX] |= MARK_UNKNOWN;
     }
 
     renderSelectedRoom();
@@ -309,26 +311,26 @@ void World::updateKernel(int x, int y) const
         if (y == 0)
         {
             myKernel[0][1] = myKernel[0][2] = false;
-            myKernel[1][1] = (myRoomGrid[y][x] & RP_VALID);
-            myKernel[1][2] = (myRoomGrid[y][x + 1] & RP_VALID);
-            myKernel[2][1] = (myRoomGrid[y + 1][x] & RP_VALID);
-            myKernel[2][2] = (myRoomGrid[y + 1][x + 1] & RP_VALID);
+            myKernel[1][1] = (myRoomGrid[y][x] & VALID);
+            myKernel[1][2] = (myRoomGrid[y][x + 1] & VALID);
+            myKernel[2][1] = (myRoomGrid[y + 1][x] & VALID);
+            myKernel[2][2] = (myRoomGrid[y + 1][x + 1] & VALID);
         }
         else if (y < myHeight - 1)
         {
-            myKernel[0][1] = (myRoomGrid[y - 1][x] & RP_VALID);
-            myKernel[0][2] = (myRoomGrid[y - 1][x + 1] & RP_VALID);
-            myKernel[1][1] = (myRoomGrid[y][x] & RP_VALID);
-            myKernel[1][2] = (myRoomGrid[y][x + 1] & RP_VALID);
-            myKernel[2][1] = (myRoomGrid[y + 1][x] & RP_VALID);
-            myKernel[2][2] = (myRoomGrid[y + 1][x + 1] & RP_VALID);
+            myKernel[0][1] = (myRoomGrid[y - 1][x] & VALID);
+            myKernel[0][2] = (myRoomGrid[y - 1][x + 1] & VALID);
+            myKernel[1][1] = (myRoomGrid[y][x] & VALID);
+            myKernel[1][2] = (myRoomGrid[y][x + 1] & VALID);
+            myKernel[2][1] = (myRoomGrid[y + 1][x] & VALID);
+            myKernel[2][2] = (myRoomGrid[y + 1][x + 1] & VALID);
         }
         else
         {
-            myKernel[0][1] = (myRoomGrid[y - 1][x] & RP_VALID);
-            myKernel[0][2] = (myRoomGrid[y - 1][x + 1] & RP_VALID);
-            myKernel[1][1] = (myRoomGrid[y][x] & RP_VALID);
-            myKernel[1][2] = (myRoomGrid[y][x + 1] & RP_VALID);
+            myKernel[0][1] = (myRoomGrid[y - 1][x] & VALID);
+            myKernel[0][2] = (myRoomGrid[y - 1][x + 1] & VALID);
+            myKernel[1][1] = (myRoomGrid[y][x] & VALID);
+            myKernel[1][2] = (myRoomGrid[y][x + 1] & VALID);
             myKernel[2][1] = myKernel[2][2] = false;
         }
     }
@@ -337,33 +339,33 @@ void World::updateKernel(int x, int y) const
         if (y == 0)
         {
             myKernel[0][0] = myKernel[0][1] = myKernel[0][2] = false;
-            myKernel[1][0] = (myRoomGrid[y][x - 1] & RP_VALID);
-            myKernel[1][1] = (myRoomGrid[y][x] & RP_VALID);
-            myKernel[1][2] = (myRoomGrid[y][x + 1] & RP_VALID);
-            myKernel[2][0] = (myRoomGrid[y + 1][x - 1] & RP_VALID);
-            myKernel[2][1] = (myRoomGrid[y + 1][x] & RP_VALID);
-            myKernel[2][2] = (myRoomGrid[y + 1][x + 1] & RP_VALID);
+            myKernel[1][0] = (myRoomGrid[y][x - 1] & VALID);
+            myKernel[1][1] = (myRoomGrid[y][x] & VALID);
+            myKernel[1][2] = (myRoomGrid[y][x + 1] & VALID);
+            myKernel[2][0] = (myRoomGrid[y + 1][x - 1] & VALID);
+            myKernel[2][1] = (myRoomGrid[y + 1][x] & VALID);
+            myKernel[2][2] = (myRoomGrid[y + 1][x + 1] & VALID);
         }
         else if (y < myHeight - 1)
         {
-            myKernel[0][0] = (myRoomGrid[y - 1][x - 1] & RP_VALID);
-            myKernel[0][1] = (myRoomGrid[y - 1][x] & RP_VALID);
-            myKernel[0][2] = (myRoomGrid[y - 1][x + 1] & RP_VALID);
-            myKernel[1][0] = (myRoomGrid[y][x - 1] & RP_VALID);
-            myKernel[1][1] = (myRoomGrid[y][x] & RP_VALID);
-            myKernel[1][2] = (myRoomGrid[y][x + 1] & RP_VALID);
-            myKernel[2][0] = (myRoomGrid[y + 1][x - 1] & RP_VALID);
-            myKernel[2][1] = (myRoomGrid[y + 1][x] & RP_VALID);
-            myKernel[2][2] = (myRoomGrid[y + 1][x + 1] & RP_VALID);
+            myKernel[0][0] = (myRoomGrid[y - 1][x - 1] & VALID);
+            myKernel[0][1] = (myRoomGrid[y - 1][x] & VALID);
+            myKernel[0][2] = (myRoomGrid[y - 1][x + 1] & VALID);
+            myKernel[1][0] = (myRoomGrid[y][x - 1] & VALID);
+            myKernel[1][1] = (myRoomGrid[y][x] & VALID);
+            myKernel[1][2] = (myRoomGrid[y][x + 1] & VALID);
+            myKernel[2][0] = (myRoomGrid[y + 1][x - 1] & VALID);
+            myKernel[2][1] = (myRoomGrid[y + 1][x] & VALID);
+            myKernel[2][2] = (myRoomGrid[y + 1][x + 1] & VALID);
         }
         else
         {
-            myKernel[0][0] = (myRoomGrid[y - 1][x - 1] & RP_VALID);
-            myKernel[0][1] = (myRoomGrid[y - 1][x] & RP_VALID);
-            myKernel[0][2] = (myRoomGrid[y - 1][x + 1] & RP_VALID);
-            myKernel[1][0] = (myRoomGrid[y][x - 1] & RP_VALID);
-            myKernel[1][1] = (myRoomGrid[y][x] & RP_VALID);
-            myKernel[1][2] = (myRoomGrid[y][x + 1] & RP_VALID);
+            myKernel[0][0] = (myRoomGrid[y - 1][x - 1] & VALID);
+            myKernel[0][1] = (myRoomGrid[y - 1][x] & VALID);
+            myKernel[0][2] = (myRoomGrid[y - 1][x + 1] & VALID);
+            myKernel[1][0] = (myRoomGrid[y][x - 1] & VALID);
+            myKernel[1][1] = (myRoomGrid[y][x] & VALID);
+            myKernel[1][2] = (myRoomGrid[y][x + 1] & VALID);
             myKernel[2][0] = myKernel[2][1] = myKernel[2][2] = false;
         }
     }
@@ -374,26 +376,26 @@ void World::updateKernel(int x, int y) const
         if (y == 0)
         {
             myKernel[0][0] = myKernel[0][1] = false;
-            myKernel[1][0] = (myRoomGrid[y][x - 1] & RP_VALID);
-            myKernel[1][1] = (myRoomGrid[y][x] & RP_VALID);
-            myKernel[2][0] = (myRoomGrid[y + 1][x - 1] & RP_VALID);
-            myKernel[2][1] = (myRoomGrid[y + 1][x] & RP_VALID);
+            myKernel[1][0] = (myRoomGrid[y][x - 1] & VALID);
+            myKernel[1][1] = (myRoomGrid[y][x] & VALID);
+            myKernel[2][0] = (myRoomGrid[y + 1][x - 1] & VALID);
+            myKernel[2][1] = (myRoomGrid[y + 1][x] & VALID);
         }
         else if (y < myHeight - 1)
         {
-            myKernel[0][0] = (myRoomGrid[y - 1][x - 1] & RP_VALID);
-            myKernel[0][1] = (myRoomGrid[y - 1][x] & RP_VALID);
-            myKernel[1][0] = (myRoomGrid[y][x - 1] & RP_VALID);
-            myKernel[1][1] = (myRoomGrid[y][x] & RP_VALID);
-            myKernel[2][0] = (myRoomGrid[y + 1][x - 1] & RP_VALID);
-            myKernel[2][1] = (myRoomGrid[y + 1][x] & RP_VALID);
+            myKernel[0][0] = (myRoomGrid[y - 1][x - 1] & VALID);
+            myKernel[0][1] = (myRoomGrid[y - 1][x] & VALID);
+            myKernel[1][0] = (myRoomGrid[y][x - 1] & VALID);
+            myKernel[1][1] = (myRoomGrid[y][x] & VALID);
+            myKernel[2][0] = (myRoomGrid[y + 1][x - 1] & VALID);
+            myKernel[2][1] = (myRoomGrid[y + 1][x] & VALID);
         }
         else
         {
-            myKernel[0][0] = (myRoomGrid[y - 1][x - 1] & RP_VALID);
-            myKernel[0][1] = (myRoomGrid[y - 1][x] & RP_VALID);
-            myKernel[1][0] = (myRoomGrid[y][x - 1] & RP_VALID);
-            myKernel[1][1] = (myRoomGrid[y][x] & RP_VALID);
+            myKernel[0][0] = (myRoomGrid[y - 1][x - 1] & VALID);
+            myKernel[0][1] = (myRoomGrid[y - 1][x] & VALID);
+            myKernel[1][0] = (myRoomGrid[y][x - 1] & VALID);
+            myKernel[1][1] = (myRoomGrid[y][x] & VALID);
             myKernel[2][0] = myKernel[2][1] = false;
         }
     }
@@ -405,22 +407,22 @@ std::string World::getCornerStyle(int xKernel, int yKernel, int drawStyle) const
 
     if (myKernel[yKernel][xKernel])
     {
-        cornerIndex |= RA_TOPLEFT;
+        cornerIndex |= RoomAdjacency::TOPLEFT;
     }
 
     if (myKernel[yKernel][xKernel + 1])
     {
-        cornerIndex |= RA_TOPRIGHT;
+        cornerIndex |= RoomAdjacency::TOPRIGHT;
     }
 
     if (myKernel[yKernel + 1][xKernel])
     {
-        cornerIndex |= RA_BOTTOMLEFT;
+        cornerIndex |= RoomAdjacency::BOTTOMLEFT;
     }
 
     if (myKernel[yKernel + 1][xKernel + 1])
     {
-        cornerIndex |= RA_BOTTOMRIGHT;
+        cornerIndex |= RoomAdjacency::BOTTOMRIGHT;
     }
 
     return myCornerStyles[cornerIndex][drawStyle];
@@ -430,19 +432,19 @@ std::string World::getRoomContent(int x, int y) const
 {
     if ((x == myCurrX) && (y == myCurrY))
     {
-        return mySpecialSymbols[SS_FACE];
+        return mySpecialSymbols[SpecialSymbol::FACE];
     }
-    else if (myRoomGrid[y][x] & RP_LOCKED)
+    else if (myRoomGrid[y][x] & LOCKED)
     {
-        return mySpecialSymbols[SS_LOCKED];
+        return mySpecialSymbols[SpecialSymbol::LOCKED];
     }
-    else if (myRoomGrid[y][x] & RP_MARK_WUMPUS)
+    else if (myRoomGrid[y][x] & MARK_WUMPUS)
     {
-        return mySpecialSymbols[SS_WUMPUS];
+        return mySpecialSymbols[SpecialSymbol::WUMPUS];
     }
-    else if (myRoomGrid[y][x] & RP_MARK_UNKNOWN)
+    else if (myRoomGrid[y][x] & MARK_UNKNOWN)
     {
-        return mySpecialSymbols[SS_UNKNOWN];
+        return mySpecialSymbols[SpecialSymbol::UNKNOWN];
     }
     else
     {
@@ -452,22 +454,22 @@ std::string World::getRoomContent(int x, int y) const
 
 bool World::isNearWumpus() const
 {
-    if ((myCurrX > 0) && (myRoomGrid[myCurrY][myCurrX - 1] & RP_WUMPUS))
+    if ((myCurrX > 0) && (myRoomGrid[myCurrY][myCurrX - 1] & WUMPUS))
     {
         return true;
     }
 
-    if ((myCurrX < myWidth - 1) && (myRoomGrid[myCurrY][myCurrX + 1] & RP_WUMPUS))
+    if ((myCurrX < myWidth - 1) && (myRoomGrid[myCurrY][myCurrX + 1] & WUMPUS))
     {
         return true;
     }
 
-    if ((myCurrY > 0) && (myRoomGrid[myCurrY - 1][myCurrX] & RP_WUMPUS))
+    if ((myCurrY > 0) && (myRoomGrid[myCurrY - 1][myCurrX] & WUMPUS))
     {
         return true;
     }
 
-    if ((myCurrY < myHeight - 1) && (myRoomGrid[myCurrY + 1][myCurrX] & RP_WUMPUS))
+    if ((myCurrY < myHeight - 1) && (myRoomGrid[myCurrY + 1][myCurrX] & WUMPUS))
     {
         return true;
     }

@@ -5,6 +5,20 @@
 #include <stdexcept>
 
 
+const std::string Game::myBanner = R"(
+                __      __
+               /  \    /  \__ __  _____ ______  __ __  ______
+               \   \/\/   /  |  \/     \\____ \|  |  \/  ___/
+                \        /|  |  /  Y Y  \  |_> >  |  /\___ \
+                 \__/\  / |____/|__|_|  /   __/|____//____  >
+                      \/              \/|__|              \/)";
+
+const std::string Game::myMessages[GameMessage::MAX] = {
+    "                                                                                ",
+    "                       ---  Press enter to start! ---                           ",
+};
+
+
 Game::Game() :
     myTerminal(std::make_unique<OSTerminal>()),
     myActiveWorld(myTerminal.get())
@@ -26,8 +40,8 @@ void Game::executiveLoop()
     {
         switch (myGameState)
         {
-        case GameState::init:
-            processInit();
+        case GameState::splash:
+            processSplash();
             break;
 
         case GameState::game:
@@ -46,15 +60,50 @@ void Game::executiveLoop()
     }
 }
 
-void Game::processInit()
+void Game::updateState(const GameState gameState)
 {
-    myActiveWorld.render();
+    myGameState = gameState;
+    myStateInit = true;
+}
 
-    myGameState = GameState::game;
+void Game::processSplash()
+{
+    if (myStateInit)
+    {
+        myStateInit = false;
+        myTerminal->setCursorPos(0, 3);
+        myTerminal->output(myBanner);
+        myTerminal->setCursorPos(0, 14);
+        myTerminal->output(myMessages[GameMessage::START]);
+    }
+
+    kb_codes_vec kbCodes;
+
+    if (myTerminal->pollKeys(kbCodes))
+    {
+        switch (kbCodes[0])
+        {
+        case KB_ENTER:
+            updateState(GameState::game);
+            break;
+
+        case KB_Q:
+        case KB_ESCAPE:
+            myExiting = true;
+            break;
+        }
+    }
 }
 
 void Game::processGame()
 {
+    if (myStateInit)
+    {
+        myStateInit = false;
+        myTerminal->clearScreen();
+        myActiveWorld.render();
+    }
+
     kb_codes_vec kbCodes;
 
     if (myTerminal->pollKeys(kbCodes))
@@ -99,7 +148,7 @@ void Game::processGame()
 
     if (myActiveWorld.isGameOver())
     {
-        myGameState = GameState::gameover;
+        updateState(GameState::gameover);
     }
 }
 
